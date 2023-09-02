@@ -1,0 +1,7 @@
+12 through 15 --> Lightbar
+3 through 10 --> Signalmaster
+
+2 --> Lowbeam
+0 and 1 --> Highbeam
+16 and 17 --> Strobe
+18 and 19 --> Grille

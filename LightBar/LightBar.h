@@ -124,6 +124,7 @@ class LightBar {
 
                     Code_Set(_code_config);
                     Headlight_Control();
+                    Taillight_Control();
                 }
                 Signal_Master(_signal_config);
             }
@@ -156,7 +157,8 @@ class LightBar {
         bool _TOGGLE_LIGHT_BAR = false;
         bool _TOGGLE_SIGNAL_MASTER = false;
         bool _TOGGLE_LOW_BEAM = false; 
-        bool _TOGGLE_HIGH_BEAM = false; 
+        bool _TOGGLE_HIGH_BEAM = false;
+        bool _TOGGLE_PARKING_LIGHTS = false;
         bool _TOGGLE_WIG_WAG = false; 
         bool _TOGGLE_STROBE = false;
 
@@ -186,6 +188,10 @@ class LightBar {
 
         // headlight specific
         int _lowBeam_Brightness = 1000, _highBeam_Brightness = 3000, _turnSignal_Brightness = 500;
+        int _parkingLight_Brightness = 100;
+
+        //taillight specific
+        int _cornerLight_Brightness = 10, _tailLight_Brightness = 70;
 
         // strobe specific
         int _strobe_iter = 0;
@@ -305,7 +311,7 @@ class LightBar {
                         Reset_LightBar();
                         break;
                 }
-                for (int i = 12; i < 20; ++i) {
+                for (int i = 11; i < 20; ++i) {
                     _OFF_Delay[i].start(_DELAY_OFF[i]);
                     _ON_Delay[i].start(_DELAY_ON[i]);
                 }
@@ -330,24 +336,72 @@ class LightBar {
             }
 
             // at min/max, brighten/dim LED
+
             if (_TOGGLE_WIG_WAG) {
                 Flip_Direction(0, 1); // headlights
+                Flip_Direction(11, 12); // left taillight
+                if (_TOGGLE_LOW_BEAM) {
+                    _MIN[11] = _tailLight_Brightness;
+                    _MAX[11] = 500;
+                    _iter[11] = 21;
+                }
+                else {
+                    _MIN[11] = 0;
+                    _MAX[11] = _tailLight_Brightness;
+                    _iter[11] = 4;
+                }
+            }
+            else {
+                _MIN[11] = 0;
+                _MAX[11] = _tailLight_Brightness;
             }
             if (_TOGGLE_STROBE) {
                 Flip_Direction(pinLED, pinLED+1); // strobe
+                if (_TOGGLE_LOW_BEAM) {
+                    _MIN[16] = _parkingLight_Brightness; _MIN[17] = _parkingLight_Brightness;
+                    _MAX[16] = _turnSignal_Brightness; _MAX[17] = _turnSignal_Brightness;
+                }
+                else {
+                    _MIN[16] = 0; _MIN[17] = 0;
+                    _MAX[16] = _turnSignal_Brightness; _MAX[17] = _turnSignal_Brightness;
+                }
             }
             else {
-                _arr_val_LED[16] = 0;
-                _arr_val_LED[17] = 0;
+                if (_TOGGLE_LOW_BEAM) {
+                    _arr_val_LED[16] = _parkingLight_Brightness;
+                    _arr_val_LED[17] = _parkingLight_Brightness;
+                }
             }
+
+
             Flip_Direction(12, 16); // lightbar
-            Flip_Direction(18, 20); // grille
+            
+            if (config == 1 || config == 2 || config == 3) {
+                Flip_Direction(18, 20); // grille
+            }
+            else {
+                _arr_val_LED[18] = 0;
+                _arr_val_LED[19] = 0;
+            }
+            
 
             // update all LED's
             if (_TOGGLE_WIG_WAG) {
-                _arr_val_LED[1] = _MAX[0] - _arr_val_LED[0];
+                _arr_val_LED[1] = _MAX[0] - _arr_val_LED[0]; // headlight
+                _arr_val_LED[21] = _arr_val_LED[11]; //right taillight
+
+                if (_MAX[11] - _arr_val_LED[11] < 0) {
+                    _arr_val_LED[22] = 0;
+                }
+                else {
+                    _arr_val_LED[22] = _MAX[11] - _arr_val_LED[11]; // reverse light
+                    }
+                _arr_val_LED[23] = _arr_val_LED[22]; // reverse light
+                    
             }
-            _arr_val_LED[19] = _MAX[18] - _arr_val_LED[18];
+            if (config == 1 || config == 2 || config == 3) {
+                _arr_val_LED[19] = _MAX[18] - _arr_val_LED[18]; //grille
+            }
             if (config == 1) {
                 _arr_val_LED[12] = _MAX[13] - _arr_val_LED[13];
             }
@@ -359,9 +413,12 @@ class LightBar {
             // iterate only if not waiting
             if (_TOGGLE_WIG_WAG) {
                 Flip_Update(0, 1); // headlights
+                Flip_Update(11, 12); // taillights
             }
             Flip_Update(12, 16); // lightbar
-            Flip_Update(18, 20); // grille
+            if (config == 1 || config == 2 || config == 3) {
+                Flip_Update(18, 20); // grille
+            }
 
             if (_TOGGLE_STROBE) {
                 Flip_Update(pinLED, pinLED+1); // strobe
@@ -405,14 +462,28 @@ class LightBar {
             for (int i = 3; i < 11; ++i) { // signalmaster
                 _MAX[i] = _signalMaster_Brightness;
             }
-            _DELAY_ON[0] = 67; _DELAY_OFF[0] = 67; // headlights
-            _iter[0] = 112; _iter[2] = 37; // headlights
+
+            // headlights
+            _DELAY_ON[0] = 67; _DELAY_OFF[0] = 67;
+            _iter[0] = 112; _iter[2] = 37;
+
+            // taillights
+            for (int i = 20; i < 24; i++) {
+                _MAX[i] = _tailLight_Brightness;
+                _DELAY_ON[i] = 233;
+                _iter[i] = 4;
+            }
+            _iter[20] = 1;
+            _MAX[20] = _cornerLight_Brightness; _MAX[11] = _tailLight_Brightness;
+            _DELAY_ON[11] = 333; _DELAY_OFF[11] = 333;
+            _iter[11] = 4;
 
             // grille lights
-            _MAX[18] = 4095;
+            _MAX[18] = 300;
             _DELAY_ON[18] = 167; _DELAY_OFF[18] = 167;
-            _iter[18] = 246;
+            _iter[18] = 18;
             
+            // strobe
             _MAX[16] = 4095; _DELAY_ON[16] = 0; _DELAY_OFF[16] = 133; _iter[16] = 4095;
             _MAX[17] = 4095; _DELAY_ON[17] = 0; _DELAY_OFF[17] = 133; _iter[17] = 4095;
             UpdateLED();
@@ -641,12 +712,30 @@ class LightBar {
             // LOW BEAM
             if (_TOGGLE_LOW_BEAM) {
                 if (_arr_val_LED[2] < _lowBeam_Brightness) {
-                    _arr_val_LED[2] += _iter[2];
+                    _arr_val_LED[2] += _iter[2]; // low beam
+                }
+                if (!_TOGGLE_STROBE && _arr_val_LED[16] < _parkingLight_Brightness) { // parking lights
+                    _arr_val_LED[16] += 5;
+                }
+                if (!_TOGGLE_STROBE && _arr_val_LED[17] < _parkingLight_Brightness) { // parking lights
+                    _arr_val_LED[17] += 5;
                 }
             }
             else {
                 if (_arr_val_LED[2] > 0) {
-                    _arr_val_LED[2] -= _iter[2];
+                    _arr_val_LED[2] -= _iter[2]; // low beam
+                }
+                if (!_TOGGLE_STROBE && _arr_val_LED[16] > 0) { // parking lights
+                    _arr_val_LED[16] -= 5;
+                }
+                if (!_TOGGLE_STROBE && _arr_val_LED[17] > 0) { // parking lights
+                    _arr_val_LED[17] -= 5;
+                }
+                if (!_TOGGLE_STROBE && _arr_val_LED[16] > _parkingLight_Brightness) {
+                    _arr_val_LED[16] = 0;
+                }
+                if (!_TOGGLE_STROBE && _arr_val_LED[17] > _parkingLight_Brightness) {
+                    _arr_val_LED[17] = 0;
                 }
             }
 
@@ -673,6 +762,59 @@ class LightBar {
                         _arr_val_LED[1] -= _iter[0];
                     else 
                         _arr_val_LED[1] = 0;
+                }
+            }
+        }
+
+        // control headlight bulbs
+        void Taillight_Control() {
+            // PARKING LIGHTS
+            if (_TOGGLE_PARKING_LIGHTS || _TOGGLE_LOW_BEAM) {
+                if (_arr_val_LED[20] < _cornerLight_Brightness) {
+                    _arr_val_LED[20] += _iter[20];
+                }
+            }
+            else {
+                if (_arr_val_LED[20] > 0) {
+                    _arr_val_LED[20] -= _iter[20];
+                }
+            }
+
+            // TAIL LIGHTS
+            if (!_TOGGLE_WIG_WAG) {
+                // reverse ligts
+                if (_arr_val_LED[22] > _iter[11])
+                    _arr_val_LED[22] -= _iter[11];
+                else 
+                    _arr_val_LED[22] = 0;
+
+                if (_arr_val_LED[23] > _iter[11]+4)
+                    _arr_val_LED[23] -= _iter[11];
+                else 
+                    _arr_val_LED[23] = 0;
+
+                // tail lights
+                if (_TOGGLE_LOW_BEAM) {
+                    if (_arr_val_LED[11] < _MAX[11])
+                        _arr_val_LED[11] += _iter[11];
+                    else
+                        _arr_val_LED[11] = _MAX[11];
+
+                    if (_arr_val_LED[21] < _MAX[11])
+                        _arr_val_LED[21] += _iter[11];
+                    else
+                        _arr_val_LED[21] = _MAX[11];
+                }
+                else {
+                    if (_arr_val_LED[11] > _iter[11])
+                        _arr_val_LED[11] -= _iter[11];
+                    else 
+                        _arr_val_LED[11] = 0;
+
+                    if (_arr_val_LED[21] > _iter[11])
+                        _arr_val_LED[21] -= _iter[11];
+                    else 
+                        _arr_val_LED[21] = 0;
                 }
             }
         }

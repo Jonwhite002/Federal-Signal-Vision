@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/jonat/Documents/Misc/Impala Model/LED_Testing/LightBar",
-      "program": "c:/Users/jonat/Documents/Misc/Impala Model/LED_Testing/LightBar/build/Debug/outDebug",
+      "cwd": "c:/Users/jonat/Documents/Misc/Impala Model/Federal-Signal-Vision/LightBar",
+      "program": "c:/Users/jonat/Documents/Misc/Impala Model/Federal-Signal-Vision/LightBar/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
